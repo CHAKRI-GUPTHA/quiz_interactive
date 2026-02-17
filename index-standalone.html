@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Interactive - Standalone</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 600px;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        .info-box h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .info-box p {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .info-box code {
+            background: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #d63384;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            flex: 1;
+            min-width: 150px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+            text-decoration: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .btn-secondary:hover {
+            background: #e8e8e8;
+        }
+
+        .setup-steps {
+            margin-top: 30px;
+            border-top: 2px solid #f0f0f0;
+            padding-top: 30px;
+        }
+
+        .step {
+            margin-bottom: 20px;
+            padding-left: 30px;
+            position: relative;
+        }
+
+        .step::before {
+            content: attr(data-step);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: #667eea;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        .step h4 {
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .step p {
+            color: #666;
+            line-height: 1.6;
+            font-size: 0.95em;
+        }
+
+        .step code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .features {
+            margin-top: 30px;
+            border-top: 2px solid #f0f0f0;
+            padding-top: 30px;
+        }
+
+        .features h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .features ul {
+            list-style: none;
+        }
+
+        .features li {
+            padding: 8px 0;
+            color: #555;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .features li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+            border-top: 1px solid #ddd;
+        }
+
+        .deployment-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .option-card {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .option-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
+        }
+
+        .option-card h4 {
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .option-card p {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .deployment-options {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                min-width: unset;
+            }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Quiz Interactive</h1>
+            <p>Deploy anywhere - Run anywhere</p>
+        </div>
+
+        <div class="content">
+            <div class="info-box">
+                <h3>Welcome! 👋</h3>
+                <p>Your quiz application is ready to run. Choose how you want to deploy it below.</p>
+            </div>
+
+            <div class="deployment-options">
+                <div class="option-card" onclick="showModal('local')">
+                    <h4>💻 Local</h4>
+                    <p>Run on your computer</p>
+                </div>
+                <div class="option-card" onclick="showModal('docker')">
+                    <h4>🐳 Docker</h4>
+                    <p>Any server with Docker</p>
+                </div>
+                <div class="option-card" onclick="showModal('heroku')">
+                    <h4>☁️ Heroku</h4>
+                    <p>1-click cloud deploy</p>
+                </div>
+                <div class="option-card" onclick="showModal('aws')">
+                    <h4>🚀 AWS</h4>
+                    <p>Enterprise cloud</p>
+                </div>
+            </div>
+
+            <div class="features">
+                <h3>✨ Features</h3>
+                <ul>
+                    <li>👨‍🏫 Teacher portal with analytics</li>
+                    <li>👤 Student account management</li>
+                    <li>🔐 Password-protected quizzes</li>
+                    <li>📊 Multi-attempt tracking</li>
+                    <li>📈 Detailed analytics dashboard</li>
+                    <li>🖥️ Responsive design</li>
+                </ul>
+            </div>
+
+            <div class="setup-steps">
+                <h3>Quick Start (Local)</h3>
+                <div class="step" data-step="1">
+                    <h4>Open Terminal</h4>
+                    <p>Navigate to your project folder</p>
+                </div>
+                <div class="step" data-step="2">
+                    <h4>Install Dependencies</h4>
+                    <p><code>npm install && cd backend && npm install && cd ..</code></p>
+                </div>
+                <div class="step" data-step="3">
+                    <h4>Start Server</h4>
+                    <p><code>npm run prod</code> or <code>npm run dev</code></p>
+                </div>
+                <div class="step" data-step="4">
+                    <h4>Open Browser</h4>
+                    <p>Visit <code>http://localhost:5000</code></p>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="location.href='http://localhost:5000'">
+                    🚀 Open Local App
+                </button>
+                <button class="btn btn-secondary" onclick="showModal('docs')">
+                    📖 Full Documentation
+                </button>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>📁 Built with React + Vite + Node.js</p>
+            <p>🔗 <a href="https://github.com/CHAKRI-GUPTHA/quiz_interactive" target="_blank">View on GitHub</a></p>
+        </div>
+    </div>
+
+    <!-- Modal for local setup -->
+    <div id="localModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('local')">&times;</span>
+            <h3>Local Setup Instructions</h3>
+            <p style="margin-top: 15px; color: #666; line-height: 1.8;">
+                <strong>Step 1: Install Dependencies</strong><br>
+                Run in your project root:<br>
+                <code style="display: block; background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 4px;">
+                    npm install<br>
+                    cd backend && npm install<br>
+                    cd ..
+                </code>
+            </p>
+            <p style="color: #666; line-height: 1.8;">
+                <strong>Step 2: Start the Server</strong><br>
+                <code style="display: block; background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 4px;">
+                    npm run dev
+                </code>
+                For production build:<br>
+                <code style="display: block; background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 4px;">
+                    npm run prod
+                </code>
+            </p>
+            <p style="color: #666; line-height: 1.8;">
+                <strong>Step 3: Open in Browser</strong><br>
+                Visit: <code>http://localhost:5000</code> or <code>http://localhost:5174</code>
+            </p>
+            <button class="btn btn-primary" style="margin-top: 20px; width: 100%;" onclick="closeModal('local')">Close</button>
+        </div>
+    </div>
+
+    <!-- Modal for Docker -->
+    <div id="dockerModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('docker')">&times;</span>
+            <h3>Docker Deployment</h3>
+            <p style="margin-top: 15px; color: #666; line-height: 1.8;">
+                <strong>Quick Start:</strong><br>
+                <code style="display: block; background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 4px;">
+                    docker-compose up
+                </code>
+                Your app will be available at: <code>http://localhost:5000</code>
+            </p>
+            <p style="color: #666; line-height: 1.8;">
+                <strong>For any server:</strong><br>
+                1. Install Docker & Docker Compose<br>
+                2. Clone your repository<br>
+                3. Run <code>docker-compose up -d</code><br>
+                4. Access on <code>your-server-ip:5000</code>
+            </p>
+            <button class="btn btn-primary" style="margin-top: 20px; width: 100%;" onclick="closeModal('docker')">Close</button>
+        </div>
+    </div>
+
+    <!-- Modal for Heroku -->
+    <div id="herokuModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('heroku')">&times;</span>
+            <h3>Heroku Deployment (Free)</h3>
+            <p style="margin-top: 15px; color: #666; line-height: 1.8;">
+                <strong>Install Heroku CLI:</strong><br>
+                <code style="display: block; background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 4px;">
+                    npm install -g heroku
+                </code>
+            </p>
+            <p style="color: #666; line-height: 1.8;">
+                <strong>Deploy:</strong><br>
+                <code style="display: block; background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 4px;">
+                    heroku login<br>
+                    heroku create your-app-name<br>
+                    git push heroku main<br>
+                    heroku open
+                </code>
+            </p>
+            <button class="btn btn-primary" style="margin-top: 20px; width: 100%;" onclick="closeModal('heroku')">Close</button>
+        </div>
+    </div>
+
+    <!-- Modal for AWS -->
+    <div id="awsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('aws')">&times;</span>
+            <h3>AWS Deployment (Elastic Beanstalk)</h3>
+            <p style="margin-top: 15px; color: #666; line-height: 1.8;">
+                <strong>Install AWS CLI & EB CLI:</strong><br>
+                <code style="display: block; background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 4px;">
+                    pip install awscli awsebcli
+                </code>
+            </p>
+            <p style="color: #666; line-height: 1.8;">
+                <strong>Deploy:</strong><br>
+                <code style="display: block; background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 4px;">
+                    aws configure<br>
+                    eb init -p "Node.js 18 running on 64bit Amazon Linux 2"<br>
+                    eb create quiz-interactive<br>
+                    eb deploy<br>
+                    eb open
+                </code>
+            </p>
+            <button class="btn btn-primary" style="margin-top: 20px; width: 100%;" onclick="closeModal('aws')">Close</button>
+        </div>
+    </div>
+
+    <!-- Modal for docs -->
+    <div id="docsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('docs')">&times;</span>
+            <h3>📖 Full Documentation</h3>
+            <p style="margin-top: 15px; color: #666; line-height: 1.8;">
+                <strong>Available Resources:</strong><br><br>
+                📄 <code>DEPLOYMENT.md</code> - Complete deployment guide (AWS, Azure, Heroku, Render)<br>
+                📄 <code>README.md</code> - Project overview<br>
+                📄 <code>.env.example</code> - Environment variables template<br><br>
+                <strong>Quick Links:</strong><br>
+                • <a href="https://github.com/CHAKRI-GUPTHA/quiz_interactive" target="_blank">GitHub Repository</a><br>
+                • <a href="http://localhost:5000" target="_blank">Local App</a><br>
+            </p>
+            <button class="btn btn-primary" style="margin-top: 20px; width: 100%;" onclick="closeModal('docs')">Close</button>
+        </div>
+    </div>
+
+    <script>
+        function showModal(type) {
+            const modal = document.getElementById(type + 'Modal');
+            if (modal) {
+                modal.style.display = 'block';
+            }
+        }
+
+        function closeModal(type) {
+            const modal = document.getElementById(type + 'Modal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
