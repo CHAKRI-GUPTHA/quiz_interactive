@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Access Setup - Quiz Interactive</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section h2 {
+            color: #667eea;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section h3 {
+            color: #333;
+            font-size: 1.3em;
+            margin: 20px 0 10px 0;
+        }
+
+        .section p {
+            color: #666;
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+
+        .command-box {
+            background: #1e1e1e;
+            color: #00d084;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            overflow-x: auto;
+            border-left: 4px solid #667eea;
+            position: relative;
+        }
+
+        .command-label {
+            color: #888;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.3s;
+        }
+
+        .copy-btn:hover {
+            background: #764ba2;
+        }
+
+        .steps {
+            background: #f8f9ff;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+
+        .step {
+            margin-bottom: 15px;
+            padding-left: 30px;
+            position: relative;
+        }
+
+        .step:last-child {
+            margin-bottom: 0;
+        }
+
+        .step::before {
+            content: attr(data-step);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: #667eea;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .step strong {
+            color: #333;
+        }
+
+        .info-box {
+            background: #d1ecf1;
+            border-left: 4px solid #0c5460;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+            color: #0c5460;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #856404;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+            color: #856404;
+        }
+
+        .success-box {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+            color: #155724;
+        }
+
+        .code-inline {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #d63384;
+        }
+
+        .scenario-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .scenario-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+
+        .scenario-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .scenario-card h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .scenario-card p {
+            color: #666;
+            font-size: 0.95em;
+        }
+
+        .list-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 10px;
+            color: #666;
+        }
+
+        .list-item::before {
+            content: "✓";
+            color: #667eea;
+            font-weight: bold;
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin: 10px 0;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #ddd;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .scenario-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌐 Network Access Setup</h1>
+            <p>Run Quiz Interactive on Any Server • Access from Any Machine</p>
+        </div>
+
+        <div class="content">
+            <!-- Quick Start -->
+            <div class="section">
+                <h2>⚡ Quick Start (30 seconds)</h2>
+                
+                <div class="steps">
+                    <div class="step" data-step="1">
+                        <strong>Get your server IP</strong><br>
+                        On Windows: <span class="code-inline">ipconfig</span> (look for IPv4 Address)<br>
+                        On Mac/Linux: <span class="code-inline">hostname -I</span> or <span class="code-inline">ifconfig</span>
+                    </div>
+
+                    <div class="step" data-step="2">
+                        <strong>Run the server</strong><br>
+                        <div class="command-box">
+                            npm run prod
+                        </div>
+                    </div>
+
+                    <div class="step" data-step="3">
+                        <strong>Access from any machine</strong><br>
+                        Open browser: <span class="code-inline">http://YOUR_IP:5000</span>
+                    </div>
+                </div>
+
+                <div class="success-box">
+                    ✅ That's it! Your app is now accessible from any machine on your network!
+                </div>
+            </div>
+
+            <!-- Scenarios -->
+            <div class="section">
+                <h2>📍 Access Scenarios</h2>
+
+                <div class="scenario-grid">
+                    <div class="scenario-card">
+                        <h4>🏠 Same WiFi/LAN</h4>
+                        <p><strong>Use Case:</strong> Office, home network, same building</p>
+                        <p style="margin-top: 10px;"><strong>URL:</strong></p>
+                        <p><span class="code-inline">http://192.168.x.x:5000</span></p>
+                        <p style="margin-top: 10px; color: #28a745;">✅ Works automatically</p>
+                    </div>
+
+                    <div class="scenario-card">
+                        <h4>🌍 Internet/Different Networks</h4>
+                        <p><strong>Use Case:</strong> Remote team, public access</p>
+                        <p style="margin-top: 10px;"><strong>Solutions:</strong></p>
+                        <p>• ngrok tunnel (easy)<br>• Cloud deployment (recommended)<br>• VPN</p>
+                    </div>
+
+                    <div class="scenario-card">
+                        <h4>☁️ Cloud Server</h4>
+                        <p><strong>Use Case:</strong> Production deployment</p>
+                        <p style="margin-top: 10px;"><strong>Platforms:</strong></p>
+                        <p>AWS, Azure, Heroku, DigitalOcean, Render</p>
+                        <p style="margin-top: 10px; color: #0c5460;">See DEPLOYMENT.md</p>
+                    </div>
+
+                    <div class="scenario-card">
+                        <h4>🐳 Docker Anywhere</h4>
+                        <p><strong>Use Case:</strong> Any VPS with Docker</p>
+                        <p style="margin-top: 10px;"><strong>Command:</strong></p>
+                        <p><span class="code-inline">docker-compose up</span></p>
+                        <p style="margin-top: 10px; color: #28a745;">✅ Universal solution</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LAN Network Setup -->
+            <div class="section">
+                <h2>🏢 Same Network (LAN) - Detailed Guide</h2>
+
+                <h3>Step 1: Start the Server</h3>
+                <div class="command-box">
+                    <div class="command-label">Run production build</div>
+                    npm run prod
+                    <button class="copy-btn" onclick="copyToClipboard('npm run prod')">Copy</button>
+                </div>
+
+                <p>The server will start on port 5000 and listen on all network interfaces (0.0.0.0)</p>
+
+                <h3>Step 2: Find Your Server's IP Address</h3>
+
+                <h4>Windows:</h4>
+                <div class="command-box">
+                    <div class="command-label">Open Command Prompt and run:</div>
+                    ipconfig
+                    <button class="copy-btn" onclick="copyToClipboard('ipconfig')">Copy</button>
+                </div>
+                <p style="color: #666; font-size: 0.95em;">Look for "IPv4 Address" under your active network adapter (e.g., 192.168.1.100)</p>
+
+                <h4>Mac/Linux:</h4>
+                <div class="command-box">
+                    <div class="command-label">Run:</div>
+                    hostname -I
+                    <button class="copy-btn" onclick="copyToClipboard('hostname -I')">Copy</button>
+                </div>
+
+                <h3>Step 3: Access from Another Machine</h3>
+                <p>On any device connected to the same network, open a browser and visit:</p>
+                <div class="command-box" style="background: #f0f0f0; color: #333;">
+                    <div class="command-label">Replace YOUR_IP with your server IP</div>
+                    http://YOUR_IP:5000
+                </div>
+
+                <div class="info-box">
+                    <strong>Example:</strong> If your server IP is <span class="code-inline">192.168.1.100</span>, visit<br>
+                    <strong><span class="code-inline">http://192.168.1.100:5000</span></strong>
+                </div>
+            </div>
+
+            <!-- Internet Access with ngrok -->
+            <div class="section">
+                <h2>🌍 Internet Access with ngrok</h2>
+
+                <p>For accessing the app from different networks or the internet, use <strong>ngrok</strong> (free):</p>
+
+                <h3>Setup ngrok:</h3>
+                <div class="steps">
+                    <div class="step" data-step="1">
+                        <strong>Download ngrok</strong><br>
+                        Go to: <a href="https://ngrok.com/download" target="_blank">ngrok.com/download</a>
+                    </div>
+
+                    <div class="step" data-step="2">
+                        <strong>Create free account</strong><br>
+                        Signup at: <a href="https://dashboard.ngrok.com" target="_blank">dashboard.ngrok.com</a>
+                    </div>
+
+                    <div class="step" data-step="3">
+                        <strong>Copy your auth token</strong><br>
+                        From dashboard: Settings → Auth Token
+                    </div>
+
+                    <div class="step" data-step="4">
+                        <strong>Configure ngrok</strong><br>
+                        <div class="command-box">
+                            ngrok config add-authtoken YOUR_AUTH_TOKEN
+                        </div>
+                    </div>
+
+                    <div class="step" data-step="5">
+                        <strong>Start server & ngrok</strong><br>
+                        Terminal 1: <span class="code-inline">npm run prod</span><br>
+                        Terminal 2: <span class="code-inline">ngrok http 5000</span>
+                    </div>
+
+                    <div class="step" data-step="6">
+                        <strong>Share the link</strong><br>
+                        ngrok shows a URL like: <span class="code-inline">https://abc123.ngrok.io</span><br>
+                        Anyone can access your app with this link!
+                    </div>
+                </div>
+
+                <div class="success-box">
+                    ✅ ngrok creates a free public tunnel to your local server
+                </div>
+            </div>
+
+            <!-- Environment Configuration -->
+            <div class="section">
+                <h2>⚙️ Environment Configuration</h2>
+
+                <p>Create a <span class="code-inline">.env</span> file to configure your server for different networks:</p>
+
+                <div class="command-box">
+                    <div class="command-label">.env file example</div>
+NODE_ENV=production
+BACKEND_PORT=5000
+VITE_API_URL=http://192.168.1.100:5000
+                    <button class="copy-btn" onclick="copyToClipboard('NODE_ENV=production\nBACKEND_PORT=5000\nVITE_API_URL=http://192.168.1.100:5000')">Copy</button>
+                </div>
+
+                <h3>Configure for different scenarios:</h3>
+
+                <div class="list-item">
+                    <strong>Local:</strong> <span class="code-inline">VITE_API_URL=http://localhost:5000</span>
+                </div>
+
+                <div class="list-item">
+                    <strong>LAN (192.168.1.100):</strong> <span class="code-inline">VITE_API_URL=http://192.168.1.100:5000</span>
+                </div>
+
+                <div class="list-item">
+                    <strong>ngrok tunnel:</strong> <span class="code-inline">VITE_API_URL=https://abc123.ngrok.io</span>
+                </div>
+
+                <div class="list-item">
+                    <strong>Cloud (example.com):</strong> <span class="code-inline">VITE_API_URL=https://example.com</span>
+                </div>
+
+                <div class="info-box">
+                    ℹ️ After changing <span class="code-inline">.env</span>, rebuild:<br>
+                    <span class="code-inline">npm run build</span>
+                </div>
+            </div>
+
+            <!-- Firewall Setup -->
+            <div class="section">
+                <h2>🔥 Firewall Configuration</h2>
+
+                <p>Ensure port 5000 is allowed through your firewall:</p>
+
+                <h3>Windows:</h3>
+                <div class="command-box">
+                    <div class="command-label">PowerShell (Admin)</div>
+netsh advfirewall firewall add rule name="Quiz App" dir=in action=allow protocol=tcp localport=5000
+                    <button class="copy-btn" onclick="copyToClipboard('netsh advfirewall firewall add rule name=\"Quiz App\" dir=in action=allow protocol=tcp localport=5000')">Copy</button>
+                </div>
+
+                <h3>Linux (UFW):</h3>
+                <div class="command-box">
+                    <div class="command-label">Terminal</div>
+sudo ufw allow 5000/tcp
+                    <button class="copy-btn" onclick="copyToClipboard('sudo ufw allow 5000/tcp')">Copy</button>
+                </div>
+
+                <h3>macOS:</h3>
+                <p>System Preferences → Security & Privacy → Firewall Options → Add port 5000</p>
+            </div>
+
+            <!-- Helper Scripts -->
+            <div class="section">
+                <h2>🛠️ Helpful Scripts</h2>
+
+                <p>Pre-built scripts in your project:</p>
+
+                <h3>Windows:</h3>
+                <div class="command-box">
+                    <div class="command-label">Run in command prompt</div>
+start-server.bat
+                    <button class="copy-btn" onclick="copyToClipboard('start-server.bat')">Copy</button>
+                </div>
+                <p style="color: #666; margin-top: 8px;">Automatically finds your IP and starts the server</p>
+
+                <h3>Mac/Linux:</h3>
+                <div class="command-box">
+                    <div class="command-label">Run in terminal</div>
+bash start-server.sh
+                    <button class="copy-btn" onclick="copyToClipboard('bash start-server.sh')">Copy</button>
+                </div>
+                <p style="color: #666; margin-top: 8px;">Automatically finds your IP and starts the server</p>
+            </div>
+
+            <!-- Troubleshooting -->
+            <div class="section">
+                <h2>🐛 Troubleshooting</h2>
+
+                <h3>❌ Can't connect from another machine</h3>
+                <div class="warning-box">
+                    <p><strong>Check:</strong></p>
+                    <div class="list-item">Server is running: <span class="code-inline">npm run prod</span></div>
+                    <div class="list-item">Both machines on same network (check WiFi)</div>
+                    <div class="list-item">Correct IP address (run <span class="code-inline">ipconfig</span>)</div>
+                    <div class="list-item">Firewall allows port 5000</div>
+                    <div class="list-item">Try ping: <span class="code-inline">ping SERVER_IP</span></div>
+                </div>
+
+                <h3>❌ Port 5000 already in use</h3>
+                <div class="command-box">
+                    <div class="command-label">Windows - Kill process</div>
+netstat -ano | findstr :5000
+taskkill /PID <PID> /F
+                    <button class="copy-btn" onclick="copyToClipboard('netstat -ano | findstr :5000')">Copy</button>
+                </div>
+
+                <h3>❌ Frontend not loading data</h3>
+                <div class="info-box">
+                    Check <span class="code-inline">.env</span> - VITE_API_URL must match your server's actual IP/URL
+                </div>
+            </div>
+
+            <!-- Summary -->
+            <div class="section">
+                <h2>📋 Quick Reference</h2>
+
+                <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                    <tr style="background: #f8f9ff;">
+                        <th style="border: 1px solid #ddd; padding: 12px; text-align: left; color: #667eea; font-weight: 600;">Scenario</th>
+                        <th style="border: 1px solid #ddd; padding: 12px; text-align: left; color: #667eea; font-weight: 600;">Command</th>
+                        <th style="border: 1px solid #ddd; padding: 12px; text-align: left; color: #667eea; font-weight: 600;">Access URL</th>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #ddd; padding: 12px;">Local</td>
+                        <td style="border: 1px solid #ddd; padding: 12px;"><span class="code-inline">npm run dev</span></td>
+                        <td style="border: 1px solid #ddd; padding: 12px;"><span class="code-inline">http://localhost:5000</span></td>
+                    </tr>
+                    <tr style="background: #f8f9ff;">
+                        <td style="border: 1px solid #ddd; padding: 12px;">LAN</td>
+                        <td style="border: 1px solid #ddd; padding: 12px;"><span class="code-inline">npm run prod</span></td>
+                        <td style="border: 1px solid #ddd; padding: 12px;"><span class="code-inline">http://192.168.x.x:5000</span></td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #ddd; padding: 12px;">ngrok</td>
+                        <td style="border: 1px solid #ddd; padding: 12px;"><span class="code-inline">ngrok http 5000</span></td>
+                        <td style="border: 1px solid #ddd; padding: 12px;"><span class="code-inline">https://abc123.ngrok.io</span></td>
+                    </tr>
+                    <tr style="background: #f8f9ff;">
+                        <td style="border: 1px solid #ddd; padding: 12px;">Cloud/Docker</td>
+                        <td style="border: 1px solid #ddd; padding: 12px;">See DEPLOYMENT.md</td>
+                        <td style="border: 1px solid #ddd; padding: 12px;">Your domain</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="success-box" style="text-align: center; font-size: 1.1em;">
+                ✅ Your Quiz app is ready to run on ANY server and be accessed from ANY machine!
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Need more help? Check <strong>DEPLOYMENT.md</strong> for cloud platforms or <strong>README.md</strong> for project overview.</p>
+            <p style="margin-top: 15px; color: #999;">Quiz Interactive by CHAKRI-GUPTHA</p>
+        </div>
+    </div>
+
+    <script>
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('✅ Command copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
+        }
+    </script>
+</body>
+</html>
