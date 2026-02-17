@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
@@ -9,9 +10,6 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
-
-// Serve static files from public folder (built frontend)
-app.use(express.static(path.join(__dirname, 'public')));
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/quiz-system')
@@ -30,9 +28,18 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', environment: process.env.NODE_ENV });
 });
 
+// Serve static files from public folder (built frontend)
+const publicPath = path.join(__dirname, 'public');
+app.use(express.static(publicPath));
+
 // SPA fallback - serve index.html for all non-API routes
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+app.use((req, res) => {
+  const indexPath = path.join(publicPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).json({ message: 'Frontend not built. Run: npm run build' });
+  }
 });
 
 const PORT = process.env.BACKEND_PORT || process.env.PORT || 5000;

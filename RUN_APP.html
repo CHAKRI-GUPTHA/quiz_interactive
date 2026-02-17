@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Interactive - Access Link</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .box {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 50px;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.1em;
+            margin-bottom: 30px;
+        }
+
+        .link-section {
+            background: #f8f9ff;
+            border-left: 4px solid #667eea;
+            padding: 30px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .link-section h2 {
+            color: #333;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+        }
+
+        .link-box {
+            background: white;
+            border: 2px solid #667eea;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            word-break: break-all;
+        }
+
+        .link-box a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        .link-box a:hover {
+            text-decoration: underline;
+        }
+
+        .steps {
+            margin: 30px 0;
+            text-align: left;
+        }
+
+        .step {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            color: #155724;
+        }
+
+        .step strong {
+            color: #0c5460;
+        }
+
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 20px;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .error-box {
+            background: #fff3cd;
+            border-left: 4px solid #856404;
+            padding: 15px;
+            border-radius: 4px;
+            color: #856404;
+            margin: 20px 0;
+        }
+
+        code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>🎯 Quiz Interactive</h1>
+        <p class="subtitle">Your app is ready to run!</p>
+
+        <div class="link-section">
+            <h2>✨ Quick Start (60 seconds)</h2>
+            <div class="steps">
+                <div class="step">
+                    <strong>Step 1:</strong> Open Terminal/Command Prompt
+                </div>
+                <div class="step">
+                    <strong>Step 2:</strong> Run: <code>npm run prod</code>
+                </div>
+                <div class="step">
+                    <strong>Step 3:</strong> Open the link below in your browser
+                </div>
+            </div>
+
+            <h3 style="color: #333; margin-top: 25px; margin-bottom: 15px;">🔗 Access Your App:</h3>
+            <div class="link-box">
+                <a href="http://localhost:5000" target="_blank">
+                    🌐 http://localhost:5000
+                </a>
+            </div>
+
+            <p style="color: #666; margin-top: 15px; font-size: 0.95em;">
+                The app will be available on port 5000
+            </p>
+        </div>
+
+        <div class="link-section" style="border-left-color: #28a745;">
+            <h2 style="color: #28a745;">✅ What You Get</h2>
+            <ul style="text-align: left; color: #666; margin: 15px 0;">
+                <li>👨‍🏫 Teacher portal with quiz creation</li>
+                <li>👤 Student account management</li>
+                <li>🔐 Password-protected quizzes</li>
+                <li>📊 Multi-attempt tracking</li>
+                <li>📈 Analytics dashboard</li>
+                <li>🌐 Access from any network</li>
+            </ul>
+        </div>
+
+        <div class="link-section" style="border-left-color: #0c5460;">
+            <h2 style="color: #0c5460;">🌐 Access from Other Machines</h2>
+            <p style="color: #666; margin: 10px 0;">
+                To access from another machine on the same network:
+            </p>
+            <div style="background: white; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                <code>http://YOUR_SERVER_IP:5000</code>
+            </div>
+            <p style="color: #666; font-size: 0.9em; margin-top: 10px;">
+                Get your IP: <code>ipconfig</code> (Windows) or <code>hostname -I</code> (Mac/Linux)
+            </p>
+        </div>
+
+        <div class="link-section" style="border-left-color: #ffc107; background: #fffbea;">
+            <h2 style="color: #856404;">📖 Documentation</h2>
+            <p style="color: #666; margin: 10px 0;">
+                Check these files for detailed guides:
+            </p>
+            <ul style="text-align: left; color: #666; margin-top: 10px;">
+                <li><code>DEPLOYMENT.md</code> - Cloud deployment guides</li>
+                <li><code>NETWORK_ACCESS.html</code> - Network setup guide</li>
+                <li><code>QUICK_START.html</code> - Quick setup page</li>
+            </ul>
+        </div>
+
+        <button class="btn" onclick="window.open('http://localhost:5000', '_blank')">
+            🚀 Open App
+        </button>
+    </div>
+</body>
+</html>
