@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { HashRouter as Router, Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import { HashRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import "./APP.css";
 import CreateQuiz from "./CreateQuiz";
@@ -20,7 +20,7 @@ function LoginPage() {
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
-  const teacher = { id: "1", password: "1" };
+  const teacher = { id: "TEACHER01", password: "admin01" };
 
   const handleLogin = () => {
     if (role === "teacher") {
@@ -487,7 +487,7 @@ function DashboardPage() {
 
 export default function App() {
   return (
-    <Router>
+    <HashRouter>
       <Routes>
         <Route path="/" element={<LoginPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
@@ -502,6 +502,6 @@ export default function App() {
         <Route path="/scoreboard" element={<StudentScoreboard />} />
         <Route path="/review-attempt/:attemptId" element={<StudentReviewAttempt />} />
       </Routes>
-    </Router>
+    </HashRouter>
   );
 }
