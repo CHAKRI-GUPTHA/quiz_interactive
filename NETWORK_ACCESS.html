@@ -449,6 +449,7 @@ BACKEND_PORT=5000
 VITE_API_URL=http://192.168.1.100:5000
                     <button class="copy-btn" onclick="copyToClipboard('NODE_ENV=production\nBACKEND_PORT=5000\nVITE_API_URL=http://192.168.1.100:5000')">Copy</button>
                 </div>
+                </div>
 
                 <h3>Configure for different scenarios:</h3>
 
@@ -483,8 +484,8 @@ VITE_API_URL=http://192.168.1.100:5000
                 <h3>Windows:</h3>
                 <div class="command-box">
                     <div class="command-label">PowerShell (Admin)</div>
-netsh advfirewall firewall add rule name="Quiz App" dir=in action=allow protocol=tcp localport=5000
-                    <button class="copy-btn" onclick="copyToClipboard('netsh advfirewall firewall add rule name=\"Quiz App\" dir=in action=allow protocol=tcp localport=5000')">Copy</button>
+netsh advfirewall firewall add rule name=QuizApp dir=in action=allow protocol=tcp localport=5000
+                    <button class="copy-btn" onclick="copyToClipboard('netsh advfirewall firewall add rule name=QuizApp dir=in action=allow protocol=tcp localport=5000')">Copy</button>
                 </div>
 
                 <h3>Linux (UFW):</h3>
