@@ -21,8 +21,14 @@ function LoginPage() {
   const navigate = useNavigate();
 
   const teacher = { id: "TEACHER01", password: "admin01" };
+  const API_BASE =
+    import.meta.env.VITE_API_BASE ||
+    import.meta.env.VITE_API_URL ||
+    (typeof window !== "undefined" && window.location.port === "5000" ? "" : "http://localhost:5000");
+  const STUDENTS_API = `${API_BASE}/api/students`;
 
-  const handleLogin = () => {
+
+  const handleLogin = async () => {
     if (role === "teacher") {
       // Teacher login
       if (id === teacher.id && password === teacher.password) {
@@ -34,22 +40,26 @@ function LoginPage() {
         setMessage("Invalid Teacher Credentials!");
       }
     } else {
-      // Student login - check against created students
-      const students = JSON.parse(localStorage.getItem("students") || "[]");
-      const studentFound = students.find(s => s.id === id && s.password === password);
+      // Student login - check against backend for shared accounts
+      try {
+        const res = await fetch(`${STUDENTS_API}/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, password }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setMessage(data.message || "Unable to login");
+          return;
+        }
 
-      if (studentFound) {
         setMessage("STUDENT Login Successful!");
         sessionStorage.setItem("role", "student");
-        sessionStorage.setItem("userName", id);
-        sessionStorage.setItem("studentName", studentFound.name);
+        sessionStorage.setItem("userName", data.student?.id || id);
+        sessionStorage.setItem("studentName", data.student?.name || "");
         setTimeout(() => navigate("/dashboard"), 1500);
-      } else {
-        if (students.length === 0) {
-          setMessage("❌ No students created yet! Ask your teacher to create your account.");
-        } else {
-          setMessage("❌ Invalid Student ID or Password!");
-        }
+      } catch (err) {
+        setMessage("Unable to reach server. Start the backend to use shared student accounts.");
       }
     }
   };

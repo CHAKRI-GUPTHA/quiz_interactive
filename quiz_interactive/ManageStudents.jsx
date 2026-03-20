@@ -8,18 +8,36 @@ export default function ManageStudents() {
   const [showForm, setShowForm] = useState(false);
   const [newStudent, setNewStudent] = useState({ name: "", id: "", password: "" });
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  // Load students from localStorage
-  useEffect(() => {
-    const savedStudents = JSON.parse(localStorage.getItem("students") || "[]");
-    setStudents(savedStudents);
-  }, []);
+  const API_BASE =
+    import.meta.env.VITE_API_BASE ||
+    import.meta.env.VITE_API_URL ||
+    (typeof window !== "undefined" && window.location.port === "5000" ? "" : "http://localhost:5000");
+  const STUDENTS_API = `${API_BASE}/api/students`;
 
-  // Save students to localStorage
-  const saveStudents = (updatedStudents) => {
-    localStorage.setItem("students", JSON.stringify(updatedStudents));
-    setStudents(updatedStudents);
+  const loadStudents = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(STUDENTS_API);
+      if (!res.ok) {
+        throw new Error("Failed to load students");
+      }
+      const data = await res.json();
+      setStudents(data.students || []);
+    } catch (err) {
+      setStudents([]);
+      setError("Unable to reach server. Start the backend to use shared student accounts.");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    loadStudents();
+  }, []);
 
   // Generate random password
   const generatePassword = () => {
@@ -32,45 +50,69 @@ export default function ManageStudents() {
   };
 
   // Add new student
-  const handleAddStudent = () => {
+  const handleAddStudent = async () => {
     if (!newStudent.name || !newStudent.id || !newStudent.password) {
       alert("Please fill all fields!");
       return;
     }
 
-    // Check if ID already exists
-    if (students.some(s => s.id === newStudent.id)) {
-      alert("Student ID already exists!");
-      return;
+    try {
+      const res = await fetch(STUDENTS_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newStudent),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.message || "Failed to add student");
+        return;
+      }
+      setStudents(data.students || [...students, data.student].filter(Boolean));
+      setNewStudent({ name: "", id: "", password: "" });
+      setShowForm(false);
+      alert("??? Student added successfully!");
+    } catch (err) {
+      alert("Unable to reach server. Start the backend to use shared student accounts.");
     }
-
-    const updatedStudents = [...students, {
-      ...newStudent,
-      createdAt: new Date().toISOString()
-    }];
-
-    saveStudents(updatedStudents);
-    setNewStudent({ name: "", id: "", password: "" });
-    setShowForm(false);
-    alert("✅ Student added successfully!");
   };
 
   // Delete student
-  const handleDeleteStudent = (id) => {
+  const handleDeleteStudent = async (id) => {
     if (window.confirm(`Are you sure you want to delete student ${id}?`)) {
-      const updatedStudents = students.filter(s => s.id !== id);
-      saveStudents(updatedStudents);
-      alert("✅ Student deleted!");
+      try {
+        const res = await fetch(`${STUDENTS_API}/${encodeURIComponent(id)}`, {
+          method: "DELETE",
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          alert(data.message || "Failed to delete student");
+          return;
+        }
+        setStudents(data.students || []);
+        alert("??? Student deleted!");
+      } catch (err) {
+        alert("Unable to reach server. Start the backend to use shared student accounts.");
+      }
     }
   };
 
   // Clear all students
-  const handleClearAll = () => {
-    if (window.confirm("⚠️ This will DELETE ALL STUDENTS! Are you sure?")) {
+  const handleClearAll = async () => {
+    if (window.confirm("?????? This will DELETE ALL STUDENTS! Are you sure?")) {
       if (window.confirm("This action cannot be undone! Type 'DELETE' to confirm.")) {
-        saveStudents([]);
-        setShowClearConfirm(false);
-        alert("✅ All students cleared!");
+        try {
+          const res = await fetch(STUDENTS_API, { method: "DELETE" });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            alert(data.message || "Failed to clear students");
+            return;
+          }
+          setStudents(data.students || []);
+          setShowClearConfirm(false);
+          alert("??? All students cleared!");
+        } catch (err) {
+          alert("Unable to reach server. Start the backend to use shared student accounts.");
+        }
       }
     }
   };
@@ -281,10 +323,26 @@ export default function ManageStudents() {
           </motion.div>
         )}
 
+        {error && (
+          <div style={{ marginBottom: '20px', color: '#ff6b6b', fontWeight: 'bold' }}>
+            {error}
+          </div>
+        )}
+
         {/* Students List */}
         <h3 style={{ marginBottom: '15px', color: '#00d4ff' }}>📋 Student List ({students.length})</h3>
 
-        {students.length === 0 ? (
+        {loading ? (
+          <div style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid #0099ff',
+            borderRadius: '10px',
+            padding: '40px',
+            textAlign: 'center'
+          }}>
+            <p style={{ fontSize: '1.1em', color: '#aaa' }}>Loading students...</p>
+          </div>
+        ) : students.length === 0 ? (
           <div style={{
             background: 'rgba(255,255,255,0.05)',
             border: '1px solid #0099ff',
