@@ -159,7 +159,9 @@ export default function ManageStudents() {
         </div>
 
         {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '30px' }}>
+                    <td style={{ padding: '15px', textAlign: 'center', color: '#888', fontSize: '0.85em' }}>
+                      {student.createdAt ? new Date(student.createdAt).toLocaleDateString() : 'N/A'}
+                    </td>        <div style={{ display: 'flex', gap: '10px', marginBottom: '30px' }}>
           <motion.button
             onClick={() => setShowForm(!showForm)}
             style={{
