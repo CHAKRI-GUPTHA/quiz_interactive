@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
+import { fetchQuizzes, updateQuiz } from "./quizzesApi";
 
 const addQuestionsStyles = `
   html, body {
@@ -212,7 +213,27 @@ export default function AddQuestions() {
   const { index } = useParams();
   const quizIndex = parseInt(index);
 
-  const quizzes = JSON.parse(localStorage.getItem("quizzes") || "[]");
+  const [quizzes, setQuizzes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      setLoadError("");
+      try {
+        const data = await fetchQuizzes();
+        setQuizzes(data || []);
+      } catch (error) {
+        setQuizzes([]);
+        setLoadError("Unable to reach server. Start the backend to use shared quizzes.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [index]);
+
   const quiz = quizzes[quizIndex];
 
   const [questionText, setQuestionText] = useState("");
@@ -220,11 +241,19 @@ export default function AddQuestions() {
   const [correctAnswer, setCorrectAnswer] = useState(0);
   const [points, setPoints] = useState(1);
 
+  if (loading) {
+    return <div style={{ textAlign: "center", padding: "40px", color: "white" }}>Loading quiz...</div>;
+  }
+
+  if (loadError) {
+    return <div style={{ textAlign: "center", padding: "40px", color: "white" }}>{loadError}</div>;
+  }
+
   if (!quiz) {
     return <div style={{ textAlign: "center", padding: "40px", color: "white" }}>Quiz not found!</div>;
   }
 
-  const handleAddQuestion = () => {
+  const handleAddQuestion = async () => {
     if (!questionText || options.some(opt => !opt)) {
       alert("Please fill all fields!");
       return;
@@ -233,6 +262,7 @@ export default function AddQuestions() {
     const newQuestion = {
       id: (quiz.questions?.length || 0) + 1,
       text: questionText,
+      questionText: questionText,
       options,
       correctAnswer: parseInt(correctAnswer),
       points: parseInt(points)
@@ -240,12 +270,19 @@ export default function AddQuestions() {
 
     const updatedQuiz = { ...quiz };
     if (!updatedQuiz.questions) updatedQuiz.questions = [];
-    updatedQuiz.questions.push(newQuestion);
+    updatedQuiz.questions = [...updatedQuiz.questions, newQuestion];
+    updatedQuiz.totalPoints = updatedQuiz.questions.reduce((sum, q) => sum + (q.points || 1), 0);
 
     const updatedQuizzes = [...quizzes];
     updatedQuizzes[quizIndex] = updatedQuiz;
+    setQuizzes(updatedQuizzes);
 
-    localStorage.setItem("quizzes", JSON.stringify(updatedQuizzes));
+    try {
+      await updateQuiz(updatedQuiz.quizId, updatedQuiz);
+    } catch (error) {
+      alert("Unable to reach server. Start the backend to use shared quizzes.");
+      return;
+    }
 
     // Reset form
     setQuestionText("");
@@ -256,15 +293,21 @@ export default function AddQuestions() {
     alert("Question added successfully!");
   };
 
-  const handleRemoveQuestion = (questionId) => {
+  const handleRemoveQuestion = async (questionId) => {
     const updatedQuiz = { ...quiz };
-    updatedQuiz.questions = updatedQuiz.questions.filter(q => q.id !== questionId);
+    updatedQuiz.questions = (updatedQuiz.questions || []).filter(q => q.id !== questionId);
+    updatedQuiz.totalPoints = updatedQuiz.questions.reduce((sum, q) => sum + (q.points || 1), 0);
 
     const updatedQuizzes = [...quizzes];
     updatedQuizzes[quizIndex] = updatedQuiz;
+    setQuizzes(updatedQuizzes);
 
-    localStorage.setItem("quizzes", JSON.stringify(updatedQuizzes));
-    window.location.reload();
+    try {
+      await updateQuiz(updatedQuiz.quizId, updatedQuiz);
+    } catch (error) {
+      alert("Unable to reach server. Start the backend to use shared quizzes.");
+      return;
+    }
   };
 
   const handleOptionChange = (idx, value) => {

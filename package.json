@@ -3,7 +3,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "deploy": "npm run build && gh-pages -d dist",
+    "deploy": "npm run build && gh-pages -d dist --dotfiles --remove \"^\\.github$\"",
     "prod": "npm run build && cd backend && npm install && npm start"
   },
   "dependencies": {

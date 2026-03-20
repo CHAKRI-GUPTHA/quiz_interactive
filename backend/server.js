@@ -23,6 +23,7 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/quiz-syst
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/quiz', require('./routes/quiz'));
 app.use('/api/students', require('./routes/students'));
+app.use('/api/quizzes', require('./routes/quizzes'));
 
 // Health check
 app.get('/api/health', (req, res) => {

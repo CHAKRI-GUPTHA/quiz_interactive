@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import * as pdfjsLib from "pdfjs-dist";
+import { fetchQuizzes, updateQuiz } from "./quizzesApi";
 
 // PDF worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -22,7 +23,27 @@ export default function AIQuestionGenerator(){
   const { index } = useParams();
   const quizIndex = parseInt(index);
 
-  const quizzes = JSON.parse(localStorage.getItem("quizzes")||"[]");
+  const [quizzes, setQuizzes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      setLoadError("");
+      try {
+        const data = await fetchQuizzes();
+        setQuizzes(data || []);
+      } catch (error) {
+        setQuizzes([]);
+        setLoadError("Unable to reach server. Start the backend to use shared quizzes.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [index]);
+
   const quiz = quizzes[quizIndex];
 
   const [materialFile,setMaterialFile] = useState(null);
@@ -32,6 +53,14 @@ export default function AIQuestionGenerator(){
   const [selectedQuestions,setSelectedQuestions] = useState([]);
   const [numQuestions,setNumQuestions] = useState(5);
   const [autoPublish,setAutoPublish] = useState(false);
+
+  if (loading) {
+    return <div style={{padding:30,color:'white'}}>Loading quiz...</div>;
+  }
+
+  if (loadError) {
+    return <div style={{padding:30,color:'white'}}>{loadError}</div>;
+  }
 
   if(!quiz){
     return <div style={{padding:30,color:'white'}}>Quiz not found</div>;
@@ -124,7 +153,7 @@ export default function AIQuestionGenerator(){
     setSelectedQuestions(prev => prev.includes(id)? prev.filter(x=>x!==id): [...prev,id]);
   };
 
-  const approveSelected = ()=>{
+  const approveSelected = async () => {
     const toAdd = generatedQuestions.filter(q=>selectedQuestions.includes(q.id));
     if(toAdd.length===0){ alert('Select at least one question'); return; }
 
@@ -143,9 +172,16 @@ export default function AIQuestionGenerator(){
 
     const all = [...quizzes];
     all[quizIndex] = updated;
-    localStorage.setItem('quizzes',JSON.stringify(all));
+    setQuizzes(all);
 
-    alert(`✅ ${toAdd.length} questions added`);
+    try {
+      await updateQuiz(updated.quizId, updated);
+    } catch (error) {
+      alert("Unable to reach server. Start the backend to use shared quizzes.");
+      return;
+    }
+
+    alert(`??? ${toAdd.length} questions added`);
     navigate('/dashboard');
   };
 

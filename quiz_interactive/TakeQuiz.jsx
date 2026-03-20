@@ -1,13 +1,34 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
+import { fetchQuizzes } from "./quizzesApi";
 
 export default function TakeQuiz() {
   const { index } = useParams();
   const quizIndex = parseInt(index);
   const navigate = useNavigate();
 
-  const quizzes = JSON.parse(localStorage.getItem("quizzes") || "[]");
+  const [quizzes, setQuizzes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      setLoadError("");
+      try {
+        const data = await fetchQuizzes();
+        setQuizzes(data || []);
+      } catch (error) {
+        setQuizzes([]);
+        setLoadError("Unable to reach server. Start the backend to use shared quizzes.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [index]);
+
   const quiz = quizzes[quizIndex];
 
   const userName = sessionStorage.getItem("userName") || "Student";
@@ -16,12 +37,18 @@ export default function TakeQuiz() {
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(0);
   const [total, setTotal] = useState(0);
-  const [timeLeft, setTimeLeft] = useState((quiz?.timer || 0) * 60);
+  const [timeLeft, setTimeLeft] = useState(0);
   const [passwordPrompt, setPasswordPrompt] = useState(true);
   const [quizPassword, setQuizPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [quizStarted, setQuizStarted] = useState(false);
   const [previousAttempt, setPreviousAttempt] = useState(null);
+
+  useEffect(() => {
+    if (quiz && quiz.timer) {
+      setTimeLeft(quiz.timer * 60);
+    }
+  }, [quiz]);
 
   // Check for previous attempts and if max attempts exceeded
   useEffect(() => {
@@ -66,6 +93,22 @@ export default function TakeQuiz() {
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quiz, quizStarted]);
+
+  if (loading) {
+    return (
+      <div style={{ padding: 30, color: "white" }}>
+        Loading quiz...
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div style={{ padding: 30, color: "white" }}>
+        {loadError} <button onClick={() => navigate('/dashboard')}>Back</button>
+      </div>
+    );
+  }
 
   if (!quiz) {
     return (
@@ -340,7 +383,7 @@ export default function TakeQuiz() {
             <div style={{ marginTop: 20 }}>
               {(quiz.questions || []).map((q) => (
                 <div key={q.id} style={{ marginBottom: 18, background: 'rgba(255,255,255,0.03)', padding: 12, borderRadius: 8 }}>
-                  <div style={{ marginBottom: 8 }}><strong>Q{q.id}.</strong> {q.text}</div>
+                  <div style={{ marginBottom: 8 }}><strong>Q{q.id}.</strong> {q.text || q.questionText}</div>
                   <div style={{ display: 'grid', gap: 8 }}>
                     {q.options.map((opt, i) => (
                       <label key={i} style={{ display: 'block', cursor: 'pointer', padding: 8, borderRadius: 6, background: answers[q.id] === i ? 'rgba(0,255,153,0.08)' : 'transparent' }}>
@@ -376,7 +419,7 @@ export default function TakeQuiz() {
                   const correct = q.correctAnswer;
                   return (
                     <div key={q.id} style={{ marginBottom: 12, padding: 10, borderRadius: 6, background: 'rgba(255,255,255,0.02)' }}>
-                      <div><strong>Q{q.id}.</strong> {q.text}</div>
+                      <div><strong>Q{q.id}.</strong> {q.text || q.questionText}</div>
                       <div style={{ marginTop: 8 }}>
                         {q.options.map((opt, i) => (
                           <div key={i} style={{ padding: 6, borderRadius: 4, marginBottom: 6, background: i === correct ? 'rgba(0,255,153,0.08)' : (i === sel ? 'rgba(255,107,107,0.06)' : 'transparent') }}>

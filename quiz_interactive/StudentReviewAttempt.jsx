@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
+import { fetchQuizzes } from "./quizzesApi";
 
 const styles = `
   .review-container {
@@ -381,10 +382,15 @@ export default function StudentReviewAttempt() {
     loadAttemptData();
   }, [attemptId]);
 
-  const loadAttemptData = () => {
+  const loadAttemptData = async () => {
     setLoading(true);
-    
-    const quizzes = JSON.parse(localStorage.getItem("quizzes") || "[]");
+
+    let quizzes = [];
+    try {
+      quizzes = await fetchQuizzes();
+    } catch (error) {
+      quizzes = [];
+    }
     const results = JSON.parse(localStorage.getItem("results") || "[]");
     const userName = sessionStorage.getItem("userName");
 
@@ -494,7 +500,7 @@ export default function StudentReviewAttempt() {
         <div className="quiz-info">
           <div className="info-item">
             <span className="info-label">📝 Quiz Title</span>
-            <span className="info-value">{quiz.title}</span>
+            <span className="info-value">{quiz.title || quiz.subject}</span>
           </div>
           <div className="info-item">
             <span className="info-label">📚 Total Questions</span>

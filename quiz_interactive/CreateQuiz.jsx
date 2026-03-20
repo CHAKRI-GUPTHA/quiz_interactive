@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { createQuiz } from "./quizzesApi";
 
 const createQuizStyles = `
   html, body {
@@ -260,8 +261,10 @@ export default function CreateQuiz() {
     const quizData = {
       quizId,
       subject,
+      title: subject,
       password: finalPassword,
       timer: parseInt(timer),
+      timeLimit: parseInt(timer),
       numQuestions: parseInt(numQuestions),
       questions: [],
       status: publishNow ? "published" : "created",
@@ -279,13 +282,11 @@ export default function CreateQuiz() {
   const handleConfirm = async () => {
     setIsSubmitting(true);
     try {
-      const quizzes = JSON.parse(localStorage.getItem("quizzes") || "[]");
-      quizzes.push(tempQuizData);
-      localStorage.setItem("quizzes", JSON.stringify(quizzes));
-      
+      await createQuiz(tempQuizData);
+
       setShowConfirm(false);
-      alert(`✅ Quiz "${tempQuizData.subject}" created successfully!`);
-      
+      alert(`??? Quiz "${tempQuizData.subject}" created successfully!`);
+
       setQuizId("");
       setPassword("");
       setSubject("");
@@ -294,29 +295,32 @@ export default function CreateQuiz() {
       setMaxAttempts(1);
       setFile(null);
       setTempQuizData(null);
-      
+
       setTimeout(() => navigate("/dashboard"), 1500);
     } catch (error) {
-      alert("Error creating quiz: " + error.message);
+      alert("Unable to reach server. Start the backend to use shared quizzes.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
     // Save with cancelled status
     const quizData = {
       ...tempQuizData,
       status: "cancelled"
     };
-    
-    const quizzes = JSON.parse(localStorage.getItem("quizzes") || "[]");
-    quizzes.push(quizData);
-    localStorage.setItem("quizzes", JSON.stringify(quizzes));
-    
+
+    try {
+      await createQuiz(quizData);
+    } catch (error) {
+      alert("Unable to reach server. Start the backend to use shared quizzes.");
+      return;
+    }
+
     setShowConfirm(false);
-    alert(`❌ Quiz creation cancelled!`);
-    
+    alert(`??? Quiz creation cancelled!`);
+
     setTimeout(() => navigate("/dashboard"), 1000);
   };
 

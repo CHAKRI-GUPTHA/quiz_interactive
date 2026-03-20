@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { fetchQuizzes, updateQuiz, deleteQuiz } from "./quizzesApi";
 
 const styles = `
   .quiz-management-container {
@@ -344,23 +345,28 @@ export default function TeacherQuizManagement() {
     loadQuizzes();
   }, []);
 
-  const loadQuizzes = () => {
-    const savedQuizzes = JSON.parse(localStorage.getItem("quizzes") || "[]");
-    setQuizzes(savedQuizzes);
-    
-    // Load attempts for each quiz
-    const results = JSON.parse(localStorage.getItem("results") || "[]");
-    const attemptsMap = {};
-    savedQuizzes.forEach(quiz => {
-      attemptsMap[quiz.quizId] = results.filter(r => r.quizId === quiz.quizId);
-    });
-    setQuizAttempts(attemptsMap);
+  const loadQuizzes = async () => {
+    try {
+      const savedQuizzes = await fetchQuizzes();
+      setQuizzes(savedQuizzes || []);
+
+      // Load attempts for each quiz (local results)
+      const results = JSON.parse(localStorage.getItem("results") || "[]");
+      const attemptsMap = {};
+      (savedQuizzes || []).forEach(quiz => {
+        attemptsMap[quiz.quizId] = results.filter(r => r.quizId === quiz.quizId);
+      });
+      setQuizAttempts(attemptsMap);
+    } catch (error) {
+      setQuizzes([]);
+      setMessage("Unable to reach server. Start the backend to use shared quizzes.");
+    }
   };
 
   const handleEditQuiz = (quiz) => {
     setEditingQuiz(quiz);
     setFormData({
-      title: quiz.title,
+      title: quiz.title || quiz.subject || "",
       description: quiz.description || "",
       password: quiz.password,
       maxAttempts: quiz.maxAttempts || 1,
@@ -369,7 +375,7 @@ export default function TeacherQuizManagement() {
     setMessage("");
   };
 
-  const handleUpdateQuiz = () => {
+  const handleUpdateQuiz = async () => {
     if (!formData.title || !formData.password) {
       setMessage("Title and Password are required!");
       return;
@@ -380,42 +386,58 @@ export default function TeacherQuizManagement() {
         return {
           ...q,
           title: formData.title,
+          subject: formData.title,
           description: formData.description,
           password: formData.password,
           maxAttempts: parseInt(formData.maxAttempts),
           timeLimit: parseInt(formData.timeLimit),
+          timer: parseInt(formData.timeLimit),
         };
       }
       return q;
     });
 
     setQuizzes(updated);
-    localStorage.setItem("quizzes", JSON.stringify(updated));
-    setMessage("✅ Quiz updated successfully!");
+    try {
+      const quizToUpdate = updated.find(q => q.quizId === editingQuiz.quizId);
+      await updateQuiz(quizToUpdate.quizId, quizToUpdate);
+      setMessage("??? Quiz updated successfully!");
+    } catch (error) {
+      setMessage("Unable to reach server. Start the backend to use shared quizzes.");
+      await loadQuizzes();
+      return;
+    }
+
     setTimeout(() => {
       setEditingQuiz(null);
       setMessage("");
     }, 1500);
   };
 
-  const handleDeleteQuiz = (quiz) => {
+  const handleDeleteQuiz = async (quiz) => {
     const attempts = quizAttempts[quiz.quizId] || [];
-    
+
     if (attempts.length > 0) {
-      setMessage(`❌ Cannot delete! This quiz has ${attempts.length} student attempt(s). Please archive it instead.`);
+      setMessage(`??? Cannot delete! This quiz has ${attempts.length} student attempt(s). Please archive it instead.`);
       return;
     }
 
-    if (window.confirm(`Are you sure you want to delete "${quiz.title}"? This action cannot be undone.`)) {
+    if (window.confirm(`Are you sure you want to delete "${quiz.title || quiz.subject}"? This action cannot be undone.`)) {
       const updated = quizzes.filter(q => q.quizId !== quiz.quizId);
       setQuizzes(updated);
-      localStorage.setItem("quizzes", JSON.stringify(updated));
-      setMessage("✅ Quiz deleted successfully!");
+      try {
+        await deleteQuiz(quiz.quizId);
+        setMessage("??? Quiz deleted successfully!");
+      } catch (error) {
+        setMessage("Unable to reach server. Start the backend to use shared quizzes.");
+        await loadQuizzes();
+        return;
+      }
       setTimeout(() => setMessage(""), 2000);
     }
   };
 
-  const handlePublishToggle = (quiz) => {
+  const handlePublishToggle = async (quiz) => {
     const updated = quizzes.map(q => {
       if (q.quizId === quiz.quizId) {
         return {
@@ -427,7 +449,13 @@ export default function TeacherQuizManagement() {
       return q;
     });
     setQuizzes(updated);
-    localStorage.setItem("quizzes", JSON.stringify(updated));
+    try {
+      const quizToUpdate = updated.find(q => q.quizId === quiz.quizId);
+      await updateQuiz(quizToUpdate.quizId, quizToUpdate);
+    } catch (error) {
+      setMessage("Unable to reach server. Start the backend to use shared quizzes.");
+      await loadQuizzes();
+    }
   };
 
   const viewAttempts = (quiz) => {
@@ -506,7 +534,7 @@ export default function TeacherQuizManagement() {
                 className="quiz-card"
               >
                 <div className="quiz-header">
-                  <h2 className="quiz-title">{quiz.title}</h2>
+                  <h2 className="quiz-title">{quiz.title || quiz.subject}</h2>
                   <div className="quiz-status">
                     <span className={`status-badge status-${quiz.status || "created"}`}>
                       {quiz.status === "published" ? "✓ Published" : "○ Created"}
@@ -688,7 +716,7 @@ export default function TeacherQuizManagement() {
             animate={{ opacity: 1, scale: 1 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="modal-title">📊 Attempts for "{selectedQuizzAttempts.quiz.title}"</h2>
+            <h2 className="modal-title">📊 Attempts for "{selectedQuizzAttempts.quiz.title || selectedQuizzAttempts.quiz.subject}"</h2>
 
             {selectedQuizzAttempts.attempts.length === 0 ? (
               <p style={{ color: "#aaa" }}>No attempts yet</p>

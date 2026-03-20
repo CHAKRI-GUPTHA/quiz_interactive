@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { fetchQuizzes } from "./quizzesApi";
 
 const styles = `
   .scoreboard-container {
@@ -323,12 +324,15 @@ export default function StudentScoreboard() {
     loadData();
   }, []);
 
-  const loadData = () => {
-    const savedQuizzes = JSON.parse(localStorage.getItem("quizzes") || "[]");
+  const loadData = async () => {
+    try {
+      const savedQuizzes = await fetchQuizzes();
+      setQuizzes(savedQuizzes || []);
+    } catch (error) {
+      setQuizzes([]);
+    }
     const savedResults = JSON.parse(localStorage.getItem("results") || "[]");
-    
-    setQuizzes(savedQuizzes);
-    
+
     // Filter results for current student
     const studentResults = savedResults.filter(r => r.user === userName);
     setResults(studentResults);
@@ -497,7 +501,7 @@ export default function StudentScoreboard() {
                       transition={{ delay: idx * 0.1 }}
                     >
                       <div className="quiz-header">
-                        <div className="quiz-title">{quiz?.title || "Unknown Quiz"}</div>
+                        <div className="quiz-title">{quiz?.title || quiz?.subject || "Unknown Quiz"}</div>
                       </div>
 
                       <div className="attempt-details">
@@ -576,7 +580,7 @@ export default function StudentScoreboard() {
                     transition={{ delay: idx * 0.1 }}
                   >
                     <div className="quiz-header">
-                      <div className="quiz-title">{quiz.title}</div>
+                      <div className="quiz-title">{quiz.title || quiz.subject}</div>
                       <div className="attempt-count">
                         {attempts.length} Attempt{attempts.length !== 1 ? "s" : ""}
                       </div>

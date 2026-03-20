@@ -12,6 +12,7 @@ import ManageStudents from "./ManageStudents";
 import TeacherQuizManagement from "./TeacherQuizManagement";
 import StudentScoreboard from "./StudentScoreboard";
 import StudentReviewAttempt from "./StudentReviewAttempt";
+import { fetchQuizzes, updateQuiz, deleteQuiz } from "./quizzesApi";
 
 function LoginPage() {
   const [role, setRole] = useState("student");
@@ -176,21 +177,31 @@ function DashboardPage() {
     return null;
   }
 
-  // ✅ Load created quizzes dynamically and refresh on route/localStorage changes
+  // ✅ Load created quizzes dynamically from backend
   const [quizzesState, setQuizzesState] = useState([]);
+  const [loadingQuizzes, setLoadingQuizzes] = useState(true);
+  const [quizError, setQuizError] = useState("");
   const location = useLocation();
 
   const quizzes = quizzesState;
 
-  useEffect(() => {
-    setQuizzesState(JSON.parse(localStorage.getItem("quizzes") || "[]"));
-  }, [location.key]);
+  const loadQuizzes = async () => {
+    setLoadingQuizzes(true);
+    setQuizError("");
+    try {
+      const data = await fetchQuizzes();
+      setQuizzesState(data || []);
+    } catch (error) {
+      setQuizzesState([]);
+      setQuizError("Unable to reach server. Start the backend to use shared quizzes.");
+    } finally {
+      setLoadingQuizzes(false);
+    }
+  };
 
   useEffect(() => {
-    const handler = () => setQuizzesState(JSON.parse(localStorage.getItem("quizzes") || "[]"));
-    window.addEventListener('storage', handler);
-    return () => window.removeEventListener('storage', handler);
-  }, []);
+    loadQuizzes();
+  }, [location.key]);
 
   const isQuizOpen = (quiz) => {
     if (!quiz.published) return false;
@@ -208,20 +219,30 @@ function DashboardPage() {
 
   const formatDateTime = (iso) => (iso ? new Date(iso).toLocaleString() : 'Not set');
 
-  const togglePublish = (i) => {
+  const togglePublish = async (i) => {
     const updated = [...quizzesState];
     updated[i] = { ...updated[i], published: !updated[i].published, status: !updated[i].published ? 'published' : 'created' };
     setQuizzesState(updated);
-    localStorage.setItem('quizzes', JSON.stringify(updated));
+    try {
+      await updateQuiz(updated[i].quizId, updated[i]);
+    } catch (error) {
+      alert("Unable to reach server. Start the backend to use shared quizzes.");
+      loadQuizzes();
+    }
   };
 
-  const editSchedule = (i) => {
+  const editSchedule = async (i) => {
     const start = window.prompt('Enter start (YYYY-MM-DDTHH:MM) or leave blank', quizzesState[i].startTime || '');
     const end = window.prompt('Enter end (YYYY-MM-DDTHH:MM) or leave blank', quizzesState[i].endTime || '');
     const updated = [...quizzesState];
     updated[i] = { ...updated[i], startTime: start || null, endTime: end || null };
     setQuizzesState(updated);
-    localStorage.setItem('quizzes', JSON.stringify(updated));
+    try {
+      await updateQuiz(updated[i].quizId, updated[i]);
+    } catch (error) {
+      alert("Unable to reach server. Start the backend to use shared quizzes.");
+      loadQuizzes();
+    }
   };
 
   const getStatusBadge = (status) => {
@@ -381,7 +402,11 @@ function DashboardPage() {
             <h2 style={{ marginTop: "40px" }}>📊 All Quizzes</h2>
 
             <div className="quiz-list">
-              {quizzes.length === 0 ? (
+              {loadingQuizzes ? (
+                <p>Loading quizzes...</p>
+              ) : quizError ? (
+                <p style={{ color: '#ff6b6b' }}>{quizError}</p>
+              ) : quizzes.length === 0 ? (
                 <p>No quizzes created yet.</p>
               ) : (
                 quizzes.map((quiz, index) => (
@@ -458,7 +483,12 @@ function DashboardPage() {
                             if (window.confirm(`Are you sure you want to delete "${quiz.subject}"? All student attempts will be cleared!`)) {
                               const updatedQuizzes = quizzes.filter((_, i) => i !== index);
                               setQuizzesState(updatedQuizzes);
-                              localStorage.setItem("quizzes", JSON.stringify(updatedQuizzes));
+                              try {
+                                await deleteQuiz(quiz.quizId);
+                              } catch (error) {
+                                alert("Unable to reach server. Start the backend to use shared quizzes.");
+                                return;
+                              }
                               
                               // ✅ Clear attempts for this quiz
                               const results = JSON.parse(localStorage.getItem('results') || '[]');

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { fetchQuizzes } from "./quizzesApi";
 
 export default function TeacherAnalytics() {
   const navigate = useNavigate();
@@ -10,10 +11,17 @@ export default function TeacherAnalytics() {
   const [quizStats, setQuizStats] = useState(null);
 
   useEffect(() => {
-    const savedQuizzes = JSON.parse(localStorage.getItem("quizzes") || "[]");
-    const savedResults = JSON.parse(localStorage.getItem("results") || "[]");
-    setQuizzes(savedQuizzes);
-    setResults(savedResults);
+    const load = async () => {
+      try {
+        const savedQuizzes = await fetchQuizzes();
+        setQuizzes(savedQuizzes || []);
+      } catch (error) {
+        setQuizzes([]);
+      }
+      const savedResults = JSON.parse(localStorage.getItem("results") || "[]");
+      setResults(savedResults);
+    };
+    load();
   }, []);
 
   const calculateStats = (quizId) => {
