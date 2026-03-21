@@ -479,7 +479,7 @@ function DashboardPage() {
 
                         <motion.button
                           style={{ ...actionButtonStyles, backgroundColor: '#666' }}
-                          onClick={() => {
+                          onClick={async () => {
                             if (window.confirm(`Are you sure you want to delete "${quiz.subject}"? All student attempts will be cleared!`)) {
                               const updatedQuizzes = quizzes.filter((_, i) => i !== index);
                               setQuizzesState(updatedQuizzes);
@@ -487,6 +487,7 @@ function DashboardPage() {
                                 await deleteQuiz(quiz.quizId);
                               } catch (error) {
                                 alert("Unable to reach server. Start the backend to use shared quizzes.");
+                                loadQuizzes();
                                 return;
                               }
                               
