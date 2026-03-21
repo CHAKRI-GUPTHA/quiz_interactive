@@ -163,9 +163,9 @@ const buildQuestionsFromText = (rawText, count) => {
   };
 };
 
-const extractTextFromPDF = async (file) => {
+const extractTextFromPDF = async (file, useWorker = true) => {
   const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer, disableWorker: !useWorker }).promise;
   let text = "";
 
   for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
@@ -176,6 +176,20 @@ const extractTextFromPDF = async (file) => {
   }
 
   return text;
+};
+
+const readPdfTextWithFallback = async (file) => {
+  try {
+    const primaryText = await extractTextFromPDF(file, true);
+    if (normalizeText(primaryText).length > 0) {
+      return primaryText;
+    }
+  } catch (error) {
+    console.warn("Primary PDF read failed, retrying without worker.", error);
+  }
+
+  const fallbackText = await extractTextFromPDF(file, false);
+  return fallbackText;
 };
 
 export default function AIQuestionGenerator() {
@@ -252,9 +266,19 @@ export default function AIQuestionGenerator() {
     resetGenerationState();
 
     try {
-      const extractedText = await extractTextFromPDF(file);
+      const extractedText = await readPdfTextWithFallback(file);
+      const normalizedText = normalizeText(extractedText);
+
+      if (normalizedText.length < 80) {
+        setAiError("This PDF appears to be scanned, image-only, or has very little selectable text. Try a searchable text PDF.");
+        setGenerationWarnings([
+          "Free mode can only generate questions from selectable PDF text. If you cannot select/copy text in the PDF, convert it to a searchable PDF first.",
+        ]);
+        return;
+      }
+
       const count = Number.parseInt(numQuestions, 10) || 5;
-      const result = buildQuestionsFromText(extractedText, count);
+      const result = buildQuestionsFromText(normalizedText, count);
 
       setGeneratedQuestions(result.questions);
       setSelectedQuestions(result.questions.map((question) => question.id));
