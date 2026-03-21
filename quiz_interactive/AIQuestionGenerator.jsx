@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { QUIZZES_API, fetchQuizzes, updateQuiz } from "./quizzesApi";
+import * as pdfjsLib from "pdfjs-dist";
+import { fetchQuizzes, updateQuiz } from "./quizzesApi";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 const styles = `
 .ai-generator-container{min-height:100vh;padding:40px;background:linear-gradient(135deg,#000,#1a1a1a);color:#fff}
@@ -12,6 +15,168 @@ const styles = `
 .generated-questions{margin-top:20px}
 .question-card{background:rgba(255,255,255,0.03);padding:12px;border-radius:8px;margin-bottom:12px}
 `;
+
+const stopWords = new Set([
+  "about", "after", "again", "against", "along", "also", "among", "because", "before", "being",
+  "between", "both", "could", "does", "during", "each", "from", "have", "into", "more", "most",
+  "other", "over", "same", "should", "some", "such", "than", "that", "their", "there", "these",
+  "they", "this", "those", "through", "under", "until", "very", "what", "when", "where", "which",
+  "while", "with", "would", "your", "about", "above", "across", "after", "below", "cannot",
+  "every", "first", "found", "given", "important", "material", "often", "using", "within",
+]);
+
+const normalizeText = (text) =>
+  text
+    .replace(/\s+/g, " ")
+    .replace(/\u0000/g, "")
+    .trim();
+
+const splitIntoSentences = (text) =>
+  normalizeText(text)
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentence.length >= 45 && sentence.length <= 220);
+
+const extractKeyPhrases = (text) => {
+  const phrases = new Map();
+  const normalized = normalizeText(text);
+  const capitalizedMatches = normalized.match(/\b[A-Z][a-zA-Z0-9-]{2,}(?:\s+[A-Z][a-zA-Z0-9-]{2,})*/g) || [];
+
+  capitalizedMatches.forEach((match) => {
+    const phrase = match.trim();
+    if (phrase.length >= 4) {
+      phrases.set(phrase, (phrases.get(phrase) || 0) + 3);
+    }
+  });
+
+  const words = normalized.match(/\b[a-zA-Z][a-zA-Z-]{4,}\b/g) || [];
+  words.forEach((word) => {
+    const lower = word.toLowerCase();
+    if (!stopWords.has(lower)) {
+      phrases.set(word, (phrases.get(word) || 0) + 1);
+    }
+  });
+
+  return [...phrases.entries()]
+    .sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)
+    .map(([phrase]) => phrase)
+    .filter((phrase, index, all) => all.findIndex((item) => item.toLowerCase() === phrase.toLowerCase()) === index);
+};
+
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const findSentenceTerm = (sentence, keyPhrases) => {
+  const sentenceLower = sentence.toLowerCase();
+  const phraseMatch = keyPhrases.find((phrase) => {
+    const lower = phrase.toLowerCase();
+    return lower.length >= 4 && sentenceLower.includes(lower);
+  });
+
+  if (phraseMatch) return phraseMatch;
+
+  const words = sentence.match(/\b[a-zA-Z][a-zA-Z-]{4,}\b/g) || [];
+  const candidate = words
+    .filter((word) => !stopWords.has(word.toLowerCase()))
+    .sort((a, b) => b.length - a.length)[0];
+
+  return candidate || null;
+};
+
+const shuffleOptions = (items) => {
+  const copy = [...items];
+  for (let index = copy.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [copy[index], copy[randomIndex]] = [copy[randomIndex], copy[index]];
+  }
+  return copy;
+};
+
+const buildQuestionsFromText = (rawText, count) => {
+  const text = normalizeText(rawText);
+  const sentences = splitIntoSentences(text);
+  const keyPhrases = extractKeyPhrases(text);
+
+  if (sentences.length === 0 || keyPhrases.length < 4) {
+    return {
+      summary: "",
+      warnings: [
+        "The PDF did not contain enough selectable text for question generation. Text-based PDFs work best in free mode.",
+      ],
+      questions: [],
+    };
+  }
+
+  const summary = sentences.slice(0, 2).join(" ").slice(0, 260);
+  const warnings = [
+    "Free mode generates questions from extracted PDF text, so scanned PDFs may produce weaker results.",
+  ];
+  const usedPrompts = new Set();
+  const questions = [];
+
+  for (const sentence of sentences) {
+    if (questions.length >= count) break;
+
+    const answer = findSentenceTerm(sentence, keyPhrases);
+    if (!answer || answer.length < 4) continue;
+
+    const regex = new RegExp(`\\b${escapeRegExp(answer)}\\b`, "i");
+    if (!regex.test(sentence)) continue;
+
+    const promptSentence = sentence.replace(regex, "_____");
+    if (promptSentence === sentence || promptSentence.includes("_____ _____")) continue;
+
+    const distractors = keyPhrases
+      .filter((phrase) => phrase.toLowerCase() !== answer.toLowerCase() && !sentence.toLowerCase().includes(phrase.toLowerCase()))
+      .slice(0, 12)
+      .filter((phrase, index, all) => all.findIndex((item) => item.toLowerCase() === phrase.toLowerCase()) === index)
+      .slice(0, 3);
+
+    if (distractors.length < 3) continue;
+
+    const prompt = `According to the uploaded material, which term correctly completes this statement?\n\n${promptSentence}`;
+    if (usedPrompts.has(prompt)) continue;
+    usedPrompts.add(prompt);
+
+    const options = shuffleOptions([answer, ...distractors]);
+    const correctAnswer = options.findIndex((option) => option === answer);
+    const points = sentence.length > 130 ? 3 : sentence.length > 90 ? 2 : 1;
+
+    questions.push({
+      id: Date.now() + questions.length,
+      text: prompt,
+      options,
+      correctAnswer,
+      points,
+      explanation: `The original sentence in the material uses "${answer}" in that blank.`,
+      sourceHint: sentence.slice(0, 140),
+    });
+  }
+
+  if (questions.length < count) {
+    warnings.push(`Only ${questions.length} strong question(s) could be generated from the extracted text.`);
+  }
+
+  return {
+    summary,
+    warnings,
+    questions,
+  };
+};
+
+const extractTextFromPDF = async (file) => {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let text = "";
+
+  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+    const page = await pdf.getPage(pageNumber);
+    const content = await page.getTextContent();
+    const pageText = content.items.map((item) => item.str || "").join(" ");
+    text += `${pageText}\n`;
+  }
+
+  return text;
+};
 
 export default function AIQuestionGenerator() {
   const navigate = useNavigate();
@@ -75,8 +240,10 @@ export default function AIQuestionGenerator() {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
 
-    if (!(file.type === "application/pdf" || file.type.startsWith("image/"))) {
-      alert("Please upload a PDF or image.");
+    if (file.type !== "application/pdf") {
+      setFileName(file.name);
+      resetGenerationState();
+      setAiError("Free mode currently supports text-based PDF files only.");
       return;
     }
 
@@ -85,33 +252,21 @@ export default function AIQuestionGenerator() {
     resetGenerationState();
 
     try {
+      const extractedText = await extractTextFromPDF(file);
       const count = Number.parseInt(numQuestions, 10) || 5;
-      const formData = new FormData();
-      formData.append("material", file);
-      formData.append("numQuestions", String(count));
+      const result = buildQuestionsFromText(extractedText, count);
 
-      const response = await fetch(`${QUIZZES_API}/${encodeURIComponent(quiz.quizId)}/ai-generate`, {
-        method: "POST",
-        body: formData,
-      });
-      const data = await response.json().catch(() => ({}));
+      setGeneratedQuestions(result.questions);
+      setSelectedQuestions(result.questions.map((question) => question.id));
+      setGenerationWarnings(result.warnings);
+      setMaterialSummary(result.summary);
 
-      if (!response.ok) {
-        setAiError(data.message || "Unable to generate questions from this file.");
-        return;
-      }
-
-      const questions = Array.isArray(data.questions) ? data.questions : [];
-      setGeneratedQuestions(questions);
-      setSelectedQuestions(questions.map((question) => question.id));
-      setGenerationWarnings(Array.isArray(data.warnings) ? data.warnings : []);
-      setMaterialSummary(data.materialSummary || "");
-
-      if (questions.length === 0) {
-        setAiError("The AI could not extract usable questions from this file.");
+      if (result.questions.length === 0) {
+        setAiError("No strong questions could be generated from this PDF. Try a text-based PDF with clearer content.");
       }
     } catch (error) {
-      setAiError("Unable to reach the backend AI service. Make sure the backend is running and configured.");
+      console.error("Free PDF generation failed:", error);
+      setAiError("Unable to read this PDF. Try another text-based PDF file.");
     } finally {
       setIsGenerating(false);
     }
@@ -147,6 +302,8 @@ export default function AIQuestionGenerator() {
 
     updated.materialFile = fileName;
     updated.aiGenerated = true;
+    updated.aiMode = "free-local";
+
     if (autoPublish) {
       updated.published = true;
       updated.status = "published";
@@ -171,13 +328,15 @@ export default function AIQuestionGenerator() {
     <div className="ai-generator-container">
       <style>{styles}</style>
       <div className="ai-generator-wrapper">
-        <h2 style={{ color: "#ff00ff" }}>AI Question Generator</h2>
+        <h2 style={{ color: "#ff00ff" }}>Free PDF Question Generator</h2>
 
         <div className="material-section">
-          <div style={{ marginBottom: 12 }}>Upload a PDF or image and questions will be generated automatically.</div>
+          <div style={{ marginBottom: 12 }}>
+            Upload a text-based PDF and the app will generate free local questions from the extracted text.
+          </div>
           <label className="upload-area">
-            <input className="file-input" type="file" accept="application/pdf,image/*" onChange={onFileSelected} />
-            <div style={{ color: "#ccc" }}>{fileName || "Click to choose a file or drag-and-drop"}</div>
+            <input className="file-input" type="file" accept="application/pdf" onChange={onFileSelected} />
+            <div style={{ color: "#ccc" }}>{fileName || "Click to choose a PDF file"}</div>
           </label>
 
           <div style={{ display: "flex", gap: 12, justifyContent: "center", marginTop: 12, flexWrap: "wrap" }}>
@@ -211,7 +370,7 @@ export default function AIQuestionGenerator() {
                   animation: "spin 1s linear infinite",
                 }}
               />
-              <div>Reading material and generating questions...</div>
+              <div>Reading the PDF and generating free local questions...</div>
             </div>
           )}
 
@@ -271,7 +430,7 @@ export default function AIQuestionGenerator() {
               {generatedQuestions.map((question) => (
                 <div key={question.id} className="question-card">
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                    <div style={{ fontWeight: 700 }}>{question.text}</div>
+                    <div style={{ fontWeight: 700, whiteSpace: "pre-line" }}>{question.text}</div>
                     <div>
                       <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <input
