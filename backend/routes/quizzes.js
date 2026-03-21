@@ -65,13 +65,13 @@ const GeneratedQuestionSchema = z.object({
   options: z.array(z.string().min(1)).length(4),
   correctAnswer: z.number().int().min(0).max(3),
   points: z.number().int().min(1).max(10),
-  explanation: z.string().min(1).optional(),
-  sourceHint: z.string().min(1).optional(),
+  explanation: z.string().min(1).nullable(),
+  sourceHint: z.string().min(1).nullable(),
 });
 
 const GeneratedQuestionSetSchema = z.object({
-  materialSummary: z.string().default(''),
-  warnings: z.array(z.string()).default([]),
+  materialSummary: z.string(),
+  warnings: z.array(z.string()),
   questions: z.array(GeneratedQuestionSchema).min(1).max(20),
 });
 
