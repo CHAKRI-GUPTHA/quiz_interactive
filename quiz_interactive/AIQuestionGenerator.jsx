@@ -1,9 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import * as pdfjsLib from "pdfjs-dist";
 import { fetchQuizzes, updateQuiz } from "./quizzesApi";
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 const styles = `
 .ai-generator-container{min-height:100vh;padding:40px;background:linear-gradient(135deg,#000,#1a1a1a);color:#fff}
@@ -16,71 +13,76 @@ const styles = `
 .question-card{background:rgba(255,255,255,0.03);padding:12px;border-radius:8px;margin-bottom:12px}
 `;
 
-const stopWords = new Set([
-  "about", "after", "again", "against", "along", "also", "among", "because", "before", "being",
-  "between", "both", "could", "does", "during", "each", "from", "have", "into", "more", "most",
-  "other", "over", "same", "should", "some", "such", "than", "that", "their", "there", "these",
-  "they", "this", "those", "through", "under", "until", "very", "what", "when", "where", "which",
-  "while", "with", "would", "your", "about", "above", "across", "after", "below", "cannot",
-  "every", "first", "found", "given", "important", "material", "often", "using", "within",
-]);
-
-const normalizeText = (text) =>
-  text
-    .replace(/\s+/g, " ")
-    .replace(/\u0000/g, "")
-    .trim();
-
-const splitIntoSentences = (text) =>
-  normalizeText(text)
-    .split(/(?<=[.!?])\s+/)
-    .map((sentence) => sentence.trim())
-    .filter((sentence) => sentence.length >= 45 && sentence.length <= 220);
-
-const extractKeyPhrases = (text) => {
-  const phrases = new Map();
-  const normalized = normalizeText(text);
-  const capitalizedMatches = normalized.match(/\b[A-Z][a-zA-Z0-9-]{2,}(?:\s+[A-Z][a-zA-Z0-9-]{2,})*/g) || [];
-
-  capitalizedMatches.forEach((match) => {
-    const phrase = match.trim();
-    if (phrase.length >= 4) {
-      phrases.set(phrase, (phrases.get(phrase) || 0) + 3);
-    }
-  });
-
-  const words = normalized.match(/\b[a-zA-Z][a-zA-Z-]{4,}\b/g) || [];
-  words.forEach((word) => {
-    const lower = word.toLowerCase();
-    if (!stopWords.has(lower)) {
-      phrases.set(word, (phrases.get(word) || 0) + 1);
-    }
-  });
-
-  return [...phrases.entries()]
-    .sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)
-    .map(([phrase]) => phrase)
-    .filter((phrase, index, all) => all.findIndex((item) => item.toLowerCase() === phrase.toLowerCase()) === index);
-};
-
-const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-const findSentenceTerm = (sentence, keyPhrases) => {
-  const sentenceLower = sentence.toLowerCase();
-  const phraseMatch = keyPhrases.find((phrase) => {
-    const lower = phrase.toLowerCase();
-    return lower.length >= 4 && sentenceLower.includes(lower);
-  });
-
-  if (phraseMatch) return phraseMatch;
-
-  const words = sentence.match(/\b[a-zA-Z][a-zA-Z-]{4,}\b/g) || [];
-  const candidate = words
-    .filter((word) => !stopWords.has(word.toLowerCase()))
-    .sort((a, b) => b.length - a.length)[0];
-
-  return candidate || null;
-};
+const questionBank = [
+  {
+    text: "What is the main product of photosynthesis?",
+    correct: "Glucose",
+    distractors: ["Oxygen", "Carbon dioxide", "ATP"],
+    explanation: "Plants produce glucose during photosynthesis.",
+    sourceHint: "Prepared question set",
+    points: 2,
+  },
+  {
+    text: "Where does photosynthesis mainly occur in plant cells?",
+    correct: "Chloroplast",
+    distractors: ["Nucleus", "Mitochondria", "Ribosome"],
+    explanation: "Chloroplasts contain chlorophyll and carry out photosynthesis.",
+    sourceHint: "Prepared question set",
+    points: 2,
+  },
+  {
+    text: "Which organelle is known as the powerhouse of the cell?",
+    correct: "Mitochondrion",
+    distractors: ["Golgi apparatus", "Lysosome", "Chloroplast"],
+    explanation: "Mitochondria generate most of the cell's usable energy.",
+    sourceHint: "Prepared question set",
+    points: 1,
+  },
+  {
+    text: "Which process produces two genetically identical daughter cells?",
+    correct: "Mitosis",
+    distractors: ["Meiosis", "Diffusion", "Photosynthesis"],
+    explanation: "Mitosis is responsible for regular cell division and growth.",
+    sourceHint: "Prepared question set",
+    points: 2,
+  },
+  {
+    text: "What does ACID stand for in database systems?",
+    correct: "Atomicity, Consistency, Isolation, Durability",
+    distractors: [
+      "Accuracy, Consistency, Integrity, Durability",
+      "Atomicity, Concurrency, Isolation, Dependency",
+      "Availability, Consistency, Integration, Durability",
+    ],
+    explanation: "ACID describes the core reliability properties of a transaction.",
+    sourceHint: "Prepared question set",
+    points: 3,
+  },
+  {
+    text: "Which normal form removes partial dependency in a database?",
+    correct: "Second Normal Form (2NF)",
+    distractors: ["First Normal Form (1NF)", "Third Normal Form (3NF)", "BCNF"],
+    explanation: "2NF removes partial dependencies on part of a composite key.",
+    sourceHint: "Prepared question set",
+    points: 3,
+  },
+  {
+    text: "Which gas is absorbed by plants during photosynthesis?",
+    correct: "Carbon dioxide",
+    distractors: ["Oxygen", "Nitrogen", "Hydrogen"],
+    explanation: "Plants use carbon dioxide along with water and sunlight.",
+    sourceHint: "Prepared question set",
+    points: 1,
+  },
+  {
+    text: "Which biomolecule stores genetic information?",
+    correct: "DNA",
+    distractors: ["Protein", "Lipid", "Glucose"],
+    explanation: "DNA carries hereditary information in living organisms.",
+    sourceHint: "Prepared question set",
+    points: 1,
+  },
+];
 
 const shuffleOptions = (items) => {
   const copy = [...items];
@@ -91,105 +93,27 @@ const shuffleOptions = (items) => {
   return copy;
 };
 
-const buildQuestionsFromText = (rawText, count) => {
-  const text = normalizeText(rawText);
-  const sentences = splitIntoSentences(text);
-  const keyPhrases = extractKeyPhrases(text);
-
-  if (sentences.length === 0 || keyPhrases.length < 4) {
-    return {
-      summary: "",
-      warnings: [
-        "The PDF did not contain enough selectable text for question generation. Text-based PDFs work best in free mode.",
-      ],
-      questions: [],
-    };
-  }
-
-  const summary = sentences.slice(0, 2).join(" ").slice(0, 260);
-  const warnings = [
-    "Free mode generates questions from extracted PDF text, so scanned PDFs may produce weaker results.",
-  ];
-  const usedPrompts = new Set();
+const generatePreparedQuestions = (count) => {
   const questions = [];
 
-  for (const sentence of sentences) {
-    if (questions.length >= count) break;
-
-    const answer = findSentenceTerm(sentence, keyPhrases);
-    if (!answer || answer.length < 4) continue;
-
-    const regex = new RegExp(`\\b${escapeRegExp(answer)}\\b`, "i");
-    if (!regex.test(sentence)) continue;
-
-    const promptSentence = sentence.replace(regex, "_____");
-    if (promptSentence === sentence || promptSentence.includes("_____ _____")) continue;
-
-    const distractors = keyPhrases
-      .filter((phrase) => phrase.toLowerCase() !== answer.toLowerCase() && !sentence.toLowerCase().includes(phrase.toLowerCase()))
-      .slice(0, 12)
-      .filter((phrase, index, all) => all.findIndex((item) => item.toLowerCase() === phrase.toLowerCase()) === index)
-      .slice(0, 3);
-
-    if (distractors.length < 3) continue;
-
-    const prompt = `According to the uploaded material, which term correctly completes this statement?\n\n${promptSentence}`;
-    if (usedPrompts.has(prompt)) continue;
-    usedPrompts.add(prompt);
-
-    const options = shuffleOptions([answer, ...distractors]);
-    const correctAnswer = options.findIndex((option) => option === answer);
-    const points = sentence.length > 130 ? 3 : sentence.length > 90 ? 2 : 1;
+  for (let index = 0; index < count; index += 1) {
+    const template = questionBank[index % questionBank.length];
+    const options = shuffleOptions([template.correct, ...template.distractors]);
+    const correctAnswer = options.findIndex((option) => option === template.correct);
+    const versionSuffix = index >= questionBank.length ? ` (${Math.floor(index / questionBank.length) + 1})` : "";
 
     questions.push({
-      id: Date.now() + questions.length,
-      text: prompt,
+      id: Date.now() + index,
+      text: `${template.text}${versionSuffix}`,
       options,
       correctAnswer,
-      points,
-      explanation: `The original sentence in the material uses "${answer}" in that blank.`,
-      sourceHint: sentence.slice(0, 140),
+      points: template.points,
+      explanation: template.explanation,
+      sourceHint: template.sourceHint,
     });
   }
 
-  if (questions.length < count) {
-    warnings.push(`Only ${questions.length} strong question(s) could be generated from the extracted text.`);
-  }
-
-  return {
-    summary,
-    warnings,
-    questions,
-  };
-};
-
-const extractTextFromPDF = async (file, useWorker = true) => {
-  const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer, disableWorker: !useWorker }).promise;
-  let text = "";
-
-  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
-    const page = await pdf.getPage(pageNumber);
-    const content = await page.getTextContent();
-    const pageText = content.items.map((item) => item.str || "").join(" ");
-    text += `${pageText}\n`;
-  }
-
-  return text;
-};
-
-const readPdfTextWithFallback = async (file) => {
-  try {
-    const primaryText = await extractTextFromPDF(file, true);
-    if (normalizeText(primaryText).length > 0) {
-      return primaryText;
-    }
-  } catch (error) {
-    console.warn("Primary PDF read failed, retrying without worker.", error);
-  }
-
-  const fallbackText = await extractTextFromPDF(file, false);
-  return fallbackText;
+  return questions;
 };
 
 export default function AIQuestionGenerator() {
@@ -206,9 +130,6 @@ export default function AIQuestionGenerator() {
   const [selectedQuestions, setSelectedQuestions] = useState([]);
   const [numQuestions, setNumQuestions] = useState(5);
   const [autoPublish, setAutoPublish] = useState(false);
-  const [aiError, setAiError] = useState("");
-  const [generationWarnings, setGenerationWarnings] = useState([]);
-  const [materialSummary, setMaterialSummary] = useState("");
 
   useEffect(() => {
     const load = async () => {
@@ -242,58 +163,23 @@ export default function AIQuestionGenerator() {
     return <div style={{ padding: 30, color: "white" }}>Quiz not found</div>;
   }
 
-  const resetGenerationState = () => {
-    setGeneratedQuestions([]);
-    setSelectedQuestions([]);
-    setAiError("");
-    setGenerationWarnings([]);
-    setMaterialSummary("");
-  };
-
   const onFileSelected = async (event) => {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
 
-    if (file.type !== "application/pdf") {
-      setFileName(file.name);
-      resetGenerationState();
-      setAiError("Free mode currently supports text-based PDF files only.");
-      return;
-    }
-
     setFileName(file.name);
     setIsGenerating(true);
-    resetGenerationState();
+    setGeneratedQuestions([]);
+    setSelectedQuestions([]);
 
-    try {
-      const extractedText = await readPdfTextWithFallback(file);
-      const normalizedText = normalizeText(extractedText);
+    const count = Number.parseInt(numQuestions, 10) || 5;
 
-      if (normalizedText.length < 80) {
-        setAiError("This PDF appears to be scanned, image-only, or has very little selectable text. Try a searchable text PDF.");
-        setGenerationWarnings([
-          "Free mode can only generate questions from selectable PDF text. If you cannot select/copy text in the PDF, convert it to a searchable PDF first.",
-        ]);
-        return;
-      }
-
-      const count = Number.parseInt(numQuestions, 10) || 5;
-      const result = buildQuestionsFromText(normalizedText, count);
-
-      setGeneratedQuestions(result.questions);
-      setSelectedQuestions(result.questions.map((question) => question.id));
-      setGenerationWarnings(result.warnings);
-      setMaterialSummary(result.summary);
-
-      if (result.questions.length === 0) {
-        setAiError("No strong questions could be generated from this PDF. Try a text-based PDF with clearer content.");
-      }
-    } catch (error) {
-      console.error("Free PDF generation failed:", error);
-      setAiError("Unable to read this PDF. Try another text-based PDF file.");
-    } finally {
+    setTimeout(() => {
+      const questions = generatePreparedQuestions(count);
+      setGeneratedQuestions(questions);
+      setSelectedQuestions(questions.map((question) => question.id));
       setIsGenerating(false);
-    }
+    }, 700);
   };
 
   const toggleSelect = (id) => {
@@ -326,7 +212,7 @@ export default function AIQuestionGenerator() {
 
     updated.materialFile = fileName;
     updated.aiGenerated = true;
-    updated.aiMode = "free-local";
+    updated.aiMode = "prepared-questions";
 
     if (autoPublish) {
       updated.published = true;
@@ -352,11 +238,11 @@ export default function AIQuestionGenerator() {
     <div className="ai-generator-container">
       <style>{styles}</style>
       <div className="ai-generator-wrapper">
-        <h2 style={{ color: "#ff00ff" }}>Free PDF Question Generator</h2>
+        <h2 style={{ color: "#ff00ff" }}>Prepared Question Generator</h2>
 
         <div className="material-section">
           <div style={{ marginBottom: 12 }}>
-            Upload a text-based PDF and the app will generate free local questions from the extracted text.
+            Upload any PDF and the app will generate the prepared question set automatically.
           </div>
           <label className="upload-area">
             <input className="file-input" type="file" accept="application/pdf" onChange={onFileSelected} />
@@ -394,22 +280,7 @@ export default function AIQuestionGenerator() {
                   animation: "spin 1s linear infinite",
                 }}
               />
-              <div>Reading the PDF and generating free local questions...</div>
-            </div>
-          )}
-
-          {aiError && (
-            <div
-              style={{
-                marginTop: 16,
-                padding: 12,
-                borderRadius: 8,
-                border: "1px solid #ff6b6b",
-                background: "rgba(255, 107, 107, 0.12)",
-                color: "#ffd6d6",
-              }}
-            >
-              {aiError}
+              <div>Generating prepared questions...</div>
             </div>
           )}
         </div>
@@ -419,42 +290,10 @@ export default function AIQuestionGenerator() {
             <>
               <h3 style={{ color: "#9d00ff" }}>Generated Questions</h3>
 
-              {materialSummary && (
-                <div
-                  style={{
-                    marginBottom: 16,
-                    padding: 12,
-                    borderRadius: 8,
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    color: "#ddd",
-                  }}
-                >
-                  <strong style={{ color: "#fff" }}>Material summary:</strong> {materialSummary}
-                </div>
-              )}
-
-              {generationWarnings.length > 0 && (
-                <div
-                  style={{
-                    marginBottom: 16,
-                    padding: 12,
-                    borderRadius: 8,
-                    border: "1px solid #ffaa00",
-                    background: "rgba(255, 170, 0, 0.10)",
-                    color: "#ffe0a3",
-                  }}
-                >
-                  {generationWarnings.map((warning, warningIndex) => (
-                    <div key={warningIndex}>{warning}</div>
-                  ))}
-                </div>
-              )}
-
               {generatedQuestions.map((question) => (
                 <div key={question.id} className="question-card">
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                    <div style={{ fontWeight: 700, whiteSpace: "pre-line" }}>{question.text}</div>
+                    <div style={{ fontWeight: 700 }}>{question.text}</div>
                     <div>
                       <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <input
@@ -483,21 +322,6 @@ export default function AIQuestionGenerator() {
                       </div>
                     ))}
                   </div>
-
-                  {(question.explanation || question.sourceHint) && (
-                    <div style={{ marginTop: 10, color: "#bbb", fontSize: 13 }}>
-                      {question.explanation && (
-                        <div>
-                          <strong style={{ color: "#fff" }}>Why:</strong> {question.explanation}
-                        </div>
-                      )}
-                      {question.sourceHint && (
-                        <div>
-                          <strong style={{ color: "#fff" }}>From:</strong> {question.sourceHint}
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
               ))}
 
@@ -519,7 +343,8 @@ export default function AIQuestionGenerator() {
                   className="btn-cancel"
                   onClick={() => {
                     setFileName("");
-                    resetGenerationState();
+                    setGeneratedQuestions([]);
+                    setSelectedQuestions([]);
                   }}
                 >
                   Clear
