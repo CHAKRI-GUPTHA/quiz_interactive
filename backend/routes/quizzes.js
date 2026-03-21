@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const OpenAI = require('openai');
+const { toFile } = require('openai');
 const { z } = require('zod');
 const { zodTextFormat } = require('openai/helpers/zod');
 
@@ -124,6 +125,11 @@ const buildAiPrompt = ({ quiz, count, existingQuestions }) => {
   ].join('\n');
 };
 
+const buildImageDataUrl = (filePath, mimeType) => {
+  const buffer = fs.readFileSync(filePath);
+  return `data:${mimeType};base64,${buffer.toString('base64')}`;
+};
+
 // Get all quizzes
 router.get('/', (req, res) => {
   const quizzes = readQuizzes();
@@ -156,30 +162,52 @@ router.post('/:quizId/ai-generate', upload.single('material'), async (req, res) 
       .map((question) => question.questionText || question.text || '')
       .filter(Boolean);
 
-    const uploadedFile = await openai.files.create({
-      file: fs.createReadStream(localFilePath),
-      purpose: 'user_data',
+    const promptText = buildAiPrompt({
+      quiz,
+      count: requestedCount,
+      existingQuestions,
     });
+
+    let content;
+
+    if (req.file.mimetype === 'application/pdf') {
+      const uploadedFile = await openai.files.create({
+        file: await toFile(fs.readFileSync(localFilePath), req.file.originalname, {
+          type: req.file.mimetype,
+        }),
+        purpose: 'user_data',
+      });
+
+      content = [
+        {
+          type: 'input_file',
+          file_id: uploadedFile.id,
+        },
+        {
+          type: 'input_text',
+          text: promptText,
+        },
+      ];
+    } else {
+      content = [
+        {
+          type: 'input_image',
+          image_url: buildImageDataUrl(localFilePath, req.file.mimetype),
+          detail: 'auto',
+        },
+        {
+          type: 'input_text',
+          text: promptText,
+        },
+      ];
+    }
 
     const response = await openai.responses.parse({
       model: aiModel,
       input: [
         {
           role: 'user',
-          content: [
-            {
-              type: 'input_file',
-              file_id: uploadedFile.id,
-            },
-            {
-              type: 'input_text',
-              text: buildAiPrompt({
-                quiz,
-                count: requestedCount,
-                existingQuestions,
-              }),
-            },
-          ],
+          content,
         },
       ],
       text: {
